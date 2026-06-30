@@ -93,6 +93,13 @@ export async function GET() {
           subject: renderedSubject,
           html: renderedBody,
         });
+        console.log("[Cron] SMTP info:", JSON.stringify(info, null, 2));
+        console.log("[Cron] Email sent:", {
+          from: process.env.NODEMAILER_FROM,
+          to: email,
+          subject: renderedSubject,
+          htmlLength: renderedBody.length,
+        });
 
         console.log(
           `[Cron] SMTP response for "${type}" → ${email}: ${info.response} | messageId: ${info.messageId} | accepted: [${info.accepted}] | rejected: [${info.rejected}]`
