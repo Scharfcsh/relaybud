@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
             : {}),
         },
       },
-      { upsert: true, new: true }
+      { upsert: true, returnDocument: 'after' }  // Changed from `new: true`
     );
 
     const redis = getRedis();

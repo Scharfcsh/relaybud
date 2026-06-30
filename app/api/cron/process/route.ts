@@ -23,6 +23,9 @@ export async function GET() {
   try {
     const redis = getRedis();
     await connectDB();
+    if(redis) {
+      console.log("[Cron] Connected to MongoDB and Redis, starting processing...");
+    }
 
     for (let i = 0; i < BATCH_SIZE; i++) {
       let raw: string | null;
