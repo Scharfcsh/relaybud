@@ -20,3 +20,7 @@ export function getTransporter(): Transporter {
   }
   return global._mailerTransporter;
 }
+
+export function resetTransporter(): void {
+  global._mailerTransporter = null;
+}

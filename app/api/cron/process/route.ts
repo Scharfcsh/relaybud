@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import { getRedis } from "@/lib/redis";
-import { getTransporter } from "@/lib/mailer";
+import { getTransporter, resetTransporter } from "@/lib/mailer";
 import { renderTemplate } from "@/lib/handlebars";
 import { Template } from "@/models/Template";
 import { NotificationLog } from "@/models/NotificationLog";
@@ -23,8 +23,20 @@ export async function GET() {
   try {
     const redis = getRedis();
     await connectDB();
-    if(redis) {
-      console.log("[Cron] Connected to MongoDB and Redis, starting processing...");
+    console.log("[Cron] Connected to MongoDB and Redis, starting processing...");
+
+    const transporter = getTransporter();
+    try {
+      await transporter.verify();
+      console.log("[Cron] SMTP connection verified OK");
+    } catch (verifyErr) {
+      resetTransporter();
+      const msg = verifyErr instanceof Error ? verifyErr.message : String(verifyErr);
+      console.error("[Cron] SMTP verify failed — resetting transporter:", msg);
+      return NextResponse.json(
+        { error: "SMTP connection failed", processed: 0, failed: 0 },
+        { status: 503 }
+      );
     }
 
     for (let i = 0; i < BATCH_SIZE; i++) {
@@ -75,22 +87,31 @@ export async function GET() {
       let sentAt: Date | undefined;
 
       try {
-        const transporter = getTransporter();
-        await transporter.sendMail({
+        const info = await transporter.sendMail({
           from: process.env.NODEMAILER_FROM,
           to: email,
           subject: renderedSubject,
           html: renderedBody,
         });
+
+        console.log(
+          `[Cron] SMTP response for "${type}" → ${email}: ${info.response} | messageId: ${info.messageId} | accepted: [${info.accepted}] | rejected: [${info.rejected}]`
+        );
+
+        if (info.rejected.length > 0) {
+          throw new Error(`SMTP rejected recipients: ${info.rejected.join(", ")}`);
+        }
+
         sentAt = new Date();
         processed++;
         console.log(`[Cron] Sent "${type}" to ${email}`);
       } catch (mailErr: unknown) {
+        resetTransporter();
         status = "failed";
         errorMessage =
           mailErr instanceof Error ? mailErr.message : "Mail send failed";
         failed++;
-        console.error(`[Cron] Failed to send to ${email}:`, errorMessage);
+        console.error(`[Cron] Failed to send "${type}" to ${email}:`, errorMessage);
       }
 
       await NotificationLog.create({
