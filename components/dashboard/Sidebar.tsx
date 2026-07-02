@@ -8,6 +8,7 @@ import {
   Megaphone,
   History,
   Users,
+  Send,
   X,
   Bell,
   LogOut,
@@ -18,6 +19,7 @@ import { useRouter } from "next/navigation";
 const NAV = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Templates", href: "/dashboard/templates", icon: FileText },
+  { name: "Bulk Send", href: "/dashboard/send", icon: Send },
   { name: "Campaigns", href: "/dashboard/campaigns", icon: Megaphone },
   { name: "History", href: "/dashboard/history", icon: History },
   { name: "Users", href: "/dashboard/users", icon: Users },
